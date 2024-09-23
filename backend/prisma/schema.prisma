@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id String @id @unique @db.NVarChar(255)
+  fullname String @db.NVarChar(255)
+  id_number Int @unique
+  country String @db.NVarChar(255)
+  county String @db.NVarChar(255)
+  ward String @db.NVarChar(255)
+  email String @unique @db.NVarChar(255)
+  phone_number String @unique
+  role String @default("seeker")
+  profile_image String
+  password String @db.NVarChar(255)
+  isDeleted Boolean @default(false)
+  isWelcomed Boolean @default(false)
+  job Job?
+}
+
+model Recovery {
+  recovery_id String @id @unique @db.NVarChar(255)
+  email String @unique @db.NVarChar(255)
+  verification_code Int @unique
+  isRecovered Boolean @default(false)
+}
+
+model IndividualDetails {
+  individual_id String @id @unique @db.NVarChar(255)
+  seeker_id String @db.NVarChar(255)
+  service String @db.NVarChar(255)
+  certification_image String @db.NVarChar(255)
+  yoe Int @default(0)
+  company_names String?
+}
+
+model Job {
+  job_id String @id @unique @db.NVarChar(255)
+  job_name String @db.NVarChar(255)
+  owner_id String @unique @db.NVarChar(255)
+  owner User? @relation(fields: [owner_id], references: [user_id])
+  positions String?
+  images String?
+  country String @db.NVarChar(255)
+  county String @db.NVarChar(255)
+  ward String @db.NVarChar(255)
+  short_description String @db.NVarChar(255)
+  long_description String @db.NVarChar(255)
+  start_date String
+  duration String
+  job_positions Position? @relation(fields: [job_id], references: [job_id])
+  wishlist Wishlist[]
+}
+
+model Position {
+  position_id String @id @unique @db.NVarChar(255)
+  job_id String @unique @db.NVarChar(255)
+  frequency String
+  per_frequency Int
+  price Int
+  job Job?
+}
+
+model Messages {
+  message_id String @id @unique @db.NVarChar(255)
+  sender_id String @unique @db.NVarChar(255)
+  receiver_id String @unique @db.NVarChar(255)
+  content String @db.NVarChar(255)
+  isRead Boolean @default(false)
+  sent_date String
+  job_id String @unique
+  isGroup Boolean @default(false)
+  isDeleted Boolean @default(false)
+}
+
+model Wishlist {
+  wishlist_id String @id @unique @db.NVarChar(255)
+  user_id String @unique @db.NVarChar(255)
+  job_id String @unique @db.NVarChar(255)
+  job Job? @relation(fields: [job_id], references: [job_id])
+}
