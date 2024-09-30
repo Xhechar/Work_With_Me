@@ -45,7 +45,9 @@ export interface User { //TABLE
   profile_image: string,
   password: string,
   isDeleted: boolean,
-  isWelcomed: boolean
+  isWelcomed: boolean,
+  prev_role?: string,
+  job?: Job[]
 }
 
 export interface TokenDetails extends User {

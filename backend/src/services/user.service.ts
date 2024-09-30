@@ -12,43 +12,43 @@ export class UserService {
 
   async createUser(user: User) {
 
-    const emailExists: User[] = await this.prisma.User.findUnique({
+    const emailExists = await this.prisma.user.findUnique({
       where: {
         email: user.email
       }
-    });
+    }) as User;
 
-    if (!(lodash.isEmpty(emailExists))) {
+    if (emailExists) {
       return {
         error: 'Email exists, Login Instead.'
       }
     }
 
-    const phoneExists: User[] = await this.prisma.User.findUnique({
+    const phoneExists = await this.prisma.user.findUnique({
       where: {
         phone_number: user.phone_number
       }
-    });
+    }) as User;
 
-    if (!(lodash.isEmpty(phoneExists))) {
+    if (phoneExists) {
       return {
-        error: 'Phone number exists.'
+        error: 'Phone number already exists.'
       }
     }
 
-    let idExists: User[] = await this.prisma.User.findUnique({
+    let idExists = await this.prisma.user.findUnique({
       where: {
         id_number: user.id_number
       }
-    });
+    }) as User;
 
-    if (!(lodash.isEmpty(idExists))) {
+    if (idExists) {
       return {
         error: 'The Id Number provided exists'
       }
     }
 
-    const newUser = await this.prisma.User.create({
+    const newUser = await this.prisma.user.create({
       data: {
         user_id: v4(),
         fullname: user.fullname,
@@ -59,37 +59,38 @@ export class UserService {
         email: user.email,
         phone_number: user.phone_number,
         role: user.role,
-        profile_image: user.profile_image
+        profile_image: user.profile_image,
+        password: bcrypt.hashSync(user.password, 10)
       }
     });
 
-    if (newUser[0] < 1) {
+    if (!newUser) {
       return {
         error: 'Registration Incomplete'
       }
     } else {
       return {
-        message: `Welcome ${user.fullname}, registration successfull.`
+        message: `Welcome ${user.fullname.split(' ')[0]}, registration successfull.`
       }
     }
   }
 
   async updateUser(user_id: string, user: User) {
 
-    const userExists = await this.prisma.User.findUnique({
+    const userExists = await this.prisma.user.findUnique({
       where: {
         user_id: user_id,
         isDeleted: false
       }
-    });
+    }) as User;
 
-    if (lodash.isEmpty(userExists)) {
+    if (!userExists) {
       return {
         error: 'Login to update profile.'
       }
     }
 
-    let passwordsMatch = bcrypt.compareSync(user.password, userExists[0].password);
+    let passwordsMatch = bcrypt.compareSync(user.password, userExists.password);
 
     if (!passwordsMatch) {
       return {
@@ -97,7 +98,7 @@ export class UserService {
       }
     }
 
-    const updateUser = await this.prisma.User.update({
+    const updateUser = await this.prisma.user.update({
       data: {
         user_id: v4(),
         fullname: user.fullname,
@@ -113,9 +114,8 @@ export class UserService {
       where: {
         user_id: user_id
       }
-    });
-
-    if (updateUser[0] < 1) {
+    }) as User
+    if (!updateUser) {
       return {
         error: 'Update unable to complete'
       }
@@ -127,27 +127,27 @@ export class UserService {
   }
 
   async fetchSingleUser(user_id: string) {
-    const user: User[] = await this.prisma.User.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         user_id: user_id,
         isDeleted: false
       }
-    });
+    }) as User;
 
-    if (lodash.isEmpty(user)) {
+    if (!user) {
       return {
         error: 'User not found.'
       }
     } else {
       return {
         message: 'User retrieved successfully',
-        user: user[0]
+        user: user
       }
     }
   }
 
   async fetchAllUsers() {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         isDeleted: false
       }
@@ -166,19 +166,19 @@ export class UserService {
   }
 
   async softDeleteSingleUser(user_id: string) {
-    const userExists = await this.prisma.User.findUnique({
+    const userExists = await this.prisma.user.findUnique({
       where: {
         user_id: user_id,
         isDeleted: false
       }
-    });
+    }) as User;
 
-    if (lodash.isEmpty(userExists)) {
+    if (!userExists) {
       return {
         error: 'User not found.'
       }
     } else {
-      const deleteUser = await this.prisma.User.update({
+      const deleteUser = await this.prisma.user.update({
         data: {
           isDeleted: true
         },
@@ -187,7 +187,7 @@ export class UserService {
         }
       });
 
-      if (deleteUser.affectedRows < 1) {
+      if (!deleteUser) {
         return {
           error: 'User soft deletion failed.'
         }
@@ -200,7 +200,7 @@ export class UserService {
   }
 
   async softDeleteAllUsers() {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         isDeleted: false
       }
@@ -212,7 +212,7 @@ export class UserService {
       }
     }
 
-    const deleteUsers = await this.prisma.User.updateMany({
+    const deleteUsers = await this.prisma.user.updateMany({
       data: {
         isDeleted: true
       },
@@ -221,7 +221,7 @@ export class UserService {
       }
     });
 
-    if (deleteUsers.affectedRows < 1) {
+    if (deleteUsers.count < 1) {
       return {
         error: 'Users soft deletion failed.'
       }
@@ -233,7 +233,7 @@ export class UserService {
   }
 
   async softDeleteMultipleUsers(user_ids: string[]) {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         user_id: { in: user_ids },
         isDeleted: false
@@ -246,7 +246,7 @@ export class UserService {
       }
     }
 
-    const deleteUsers = await this.prisma.User.updateMany({
+    const deleteUsers = await this.prisma.user.updateMany({
       data: {
         isDeleted: true
       },
@@ -256,7 +256,7 @@ export class UserService {
       }
     });
 
-    if (deleteUsers.affectedRows < 1) {
+    if (deleteUsers.count < 1) {
       return {
         error: 'Users soft deletion failed.'
       }
@@ -268,7 +268,7 @@ export class UserService {
   }
 
   async fetchAllSoftDeletedUsers() {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         isDeleted: true
       }
@@ -287,20 +287,20 @@ export class UserService {
   }
 
   async unSoftDeletedUser(user_id: string) {
-    const user: User[] = await this.prisma.User.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         user_id: user_id,
         isDeleted: true
       }
-    });
+    })as User;
 
-    if (lodash.isEmpty(user)) {
+    if (!user) {
       return {
-        error: 'Soft deleted user not found.'
+        error: 'User not found.'
       }
     } else {
       
-      const unDelete = await this.prisma.User.update({
+      const unDelete = await this.prisma.user.update({
         data: {
           isDeleted: false
         },
@@ -309,7 +309,7 @@ export class UserService {
         }
       });
 
-      if (unDelete.affectedRows < 1) {
+      if (!unDelete) {
         return {
           error: 'User retrieval failed.'
         }
@@ -322,7 +322,7 @@ export class UserService {
   }
 
   async unSoftDeleteAllUsers() {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         isDeleted: true
       }
@@ -334,7 +334,7 @@ export class UserService {
       }
     }
 
-    const unDeleteUsers = await this.prisma.User.updateMany({
+    const unDeleteUsers = await this.prisma.user.updateMany({
       data: {
         isDeleted: false
       },
@@ -343,7 +343,7 @@ export class UserService {
       }
     });
 
-    if (unDeleteUsers.affectedRows < 1) {
+    if (unDeleteUsers.count < 1) {
       return {
         error: 'Users restoration failed.'
       }
@@ -355,7 +355,7 @@ export class UserService {
   }
 
   async restoreMultipleUsers(user_ids: string[]) {
-    const users: User[] = await this.prisma.User.findMany({
+    const users: User[] = await this.prisma.user.findMany({
       where: {
         user_id: { in: user_ids },
         isDeleted: true
@@ -368,7 +368,7 @@ export class UserService {
       }
     }
 
-    const restoreUsers = await this.prisma.User.updateMany({
+    const restoreUsers = await this.prisma.user.updateMany({
       data: {
         isDeleted: false
       },
@@ -378,7 +378,7 @@ export class UserService {
       }
     });
 
-    if (restoreUsers.affectedRows < 1) {
+    if (restoreUsers.count < 1) {
       return {
         error: 'Users restoration failed.'
       }
@@ -390,25 +390,25 @@ export class UserService {
   }
 
   async hardDeleteSingleUser(user_id: string) {
-    const userExists = await this.prisma.User.findUnique({
+    const userExists = await this.prisma.user.findUnique({
       where: {
         user_id: user_id,
         isDeleted: false
       }
-    });
+    }) as User;
 
-    if (lodash.isEmpty(userExists)) {
+    if (!userExists) {
       return {
         error: 'User not found.'
       }
     } else {
-      const deleteUser = await this.prisma.User.delete({
+      const deleteUser = await this.prisma.user.delete({
         where: {
           user_id: user_id
         }
       });
 
-      if (deleteUser.affectedRows < 1) {
+      if (!deleteUser) {
         return {
           error: 'User hard deletion failed.'
         }
@@ -416,6 +416,44 @@ export class UserService {
         return {
           message: 'User deleted successfully.'
         }
+      }
+    }
+  }
+
+  async changeUserRole(user_id: string) {
+    let previousRole: string;
+
+    let userExists = await this.prisma.user.findUnique({
+      where: {
+        user_id: user_id
+      }
+    }) as User;
+
+    if (!userExists) {
+      return {
+        error: 'User not found'
+      }
+    }
+
+    previousRole = userExists.role;
+
+    let change = await this.prisma.user.update({
+      where: {
+        user_id: user_id
+      },
+      data: {
+        role: 'admin',
+        prev_role: previousRole
+      }
+    }) as User;
+
+    if (!change) {
+      return {
+        error: `Unable to grant ${userExists.fullname} admin previledges.`
+      }
+    } else {
+      return {
+        message: `admin previlages, successfully granted to ${userExists.fullname}`
       }
     }
   }

@@ -15,33 +15,33 @@ export class AuthService {
 
   async loginUser(logins: LoginDetails) {
 
-    const emailExists: User[] = await this.prisma.User.findUnique({
+    const emailExists = await this.prisma.user.findUnique({
       where: {
         email: logins.email,
         isDeleted: false
       }
-    });
+    }) as User;
 
-    if (lodash.isEmpty(emailExists)) {
+    if (!emailExists) {
       return {
         error: 'Email not found. Sign Up Instead.'
       }
     }
     
-    const passwordsMatch = bcrypt.compareSync(logins.password, emailExists[0].password);
+    const passwordsMatch = bcrypt.compareSync(logins.password, emailExists.password);
 
     if (!passwordsMatch) {
       return {
         error: 'Incorrect Password.'
       }
     } else {
-      const token = jwt.sign(emailExists[0], process.env.SECRET_KEY as string, {
+      const token = jwt.sign(emailExists, process.env.SECRET_KEY as string, {
         expiresIn: '30m'
       });
 
       return {
         message: 'Logged In Successfully.',
-        role: emailExists[0].role,
+        role: emailExists.role,
         token: token
       }
     }

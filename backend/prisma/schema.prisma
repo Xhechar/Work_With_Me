@@ -28,6 +28,7 @@ model User {
   isDeleted Boolean @default(false)
   isWelcomed Boolean @default(false)
   job Job?
+  prev_role String? @db.NVarChar(255)
 }
 
 model Recovery {

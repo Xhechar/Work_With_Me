@@ -1,1 +1,1 @@
-use workwithme
+SELECT * FROM dbo.[User]
