@@ -1,10 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { User } from "../interfaces/interfaces";
+import { IndividualDetails, User } from "../interfaces/interfaces";
 import { v4 } from "uuid";
 import lodash from 'lodash';
 import bcrypt from 'bcrypt';
+import { IndividualPersonDetails } from "./user.individual.details";
 
 export class UserService {
+  individualPersonDetails = new IndividualPersonDetails();
 
   prisma = new PrismaClient({
     log: ["error"]
@@ -127,12 +129,15 @@ export class UserService {
   }
 
   async fetchSingleUser(user_id: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         user_id: user_id,
         isDeleted: false
+      },
+      include: {
+        individualDetails: true
       }
-    }) as User;
+    }) as (User & { individualDetails: IndividualDetails | null });
 
     if (!user) {
       return {
@@ -147,9 +152,12 @@ export class UserService {
   }
 
   async fetchAllUsers() {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         isDeleted: false
+      },
+      include: {
+        individualDetails: true
       }
     });
 
@@ -200,11 +208,11 @@ export class UserService {
   }
 
   async softDeleteAllUsers() {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         isDeleted: false
       }
-    });
+    }) as User[];
 
     if (lodash.isEmpty(users)) {
       return {
@@ -233,12 +241,12 @@ export class UserService {
   }
 
   async softDeleteMultipleUsers(user_ids: string[]) {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         user_id: { in: user_ids },
         isDeleted: false
       }
-    });
+    }) as User[];
 
     if (lodash.isEmpty(users)) {
       return {
@@ -268,9 +276,12 @@ export class UserService {
   }
 
   async fetchAllSoftDeletedUsers() {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         isDeleted: true
+      },
+      include: {
+        individualDetails: true
       }
     });
 
@@ -322,11 +333,11 @@ export class UserService {
   }
 
   async unSoftDeleteAllUsers() {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         isDeleted: true
       }
-    });
+    }) as User[];
 
     if (lodash.isEmpty(users)) {
       return {
@@ -355,12 +366,12 @@ export class UserService {
   }
 
   async restoreMultipleUsers(user_ids: string[]) {
-    const users: User[] = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         user_id: { in: user_ids },
         isDeleted: true
       }
-    });
+    }) as User[];
 
     if (lodash.isEmpty(users)) {
       return {
@@ -414,7 +425,8 @@ export class UserService {
         }
       } else {
         return {
-          message: 'User deleted successfully.'
+          message: `User deleted successfully. ${
+            (await this.individualPersonDetails.deleteDetails(user_id)).message as string}`
         }
       }
     }
@@ -436,25 +448,51 @@ export class UserService {
     }
 
     previousRole = userExists.role;
+    let role = userExists.role;
 
-    let change = await this.prisma.user.update({
+    if (role != 'admin') {
+      
+      let change = await this.prisma.user.update({
+        where: {
+          user_id: user_id
+        },
+        data: {
+          role: 'admin',
+          prev_role: userExists.role
+        }
+      }) as User;
+
+      if (!change) {
+        return {
+          error: `Unable to grant ${userExists.fullname} admin previledges.`
+        }
+      } else {
+        return {
+          message: `admin previlages, successfully granted to ${userExists.fullname}`
+        }
+      }
+      
+    } else {
+      let change = await this.prisma.user.update({
       where: {
         user_id: user_id
       },
       data: {
-        role: 'admin',
-        prev_role: previousRole
+        role: previousRole,
+        prev_role: userExists.role
       }
     }) as User;
 
     if (!change) {
       return {
-        error: `Unable to grant ${userExists.fullname} admin previledges.`
+        error: `Unable to reverse ${userExists.fullname.split(' ')[0].toLocaleUpperCase}'s admin previledges.`
       }
     } else {
       return {
-        message: `admin previlages, successfully granted to ${userExists.fullname}`
+        message: `admin previlages, successfully reversed.`
       }
     }
+    }
+
   }
 }

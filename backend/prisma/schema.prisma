@@ -27,8 +27,9 @@ model User {
   password String @db.NVarChar(255)
   isDeleted Boolean @default(false)
   isWelcomed Boolean @default(false)
-  job Job?
+  job Job[]
   prev_role String? @db.NVarChar(255)
+  individualDetails IndividualDetails?
 }
 
 model Recovery {
@@ -40,18 +41,19 @@ model Recovery {
 
 model IndividualDetails {
   individual_id String @id @unique @db.NVarChar(255)
-  seeker_id String @db.NVarChar(255)
+  user_id String @unique @db.NVarChar(255)
   service String @db.NVarChar(255)
   certification_image String @db.NVarChar(255)
   yoe Int @default(0)
   company_names String?
+  user User? @relation(fields: [user_id], references: [user_id])
 }
 
 model Job {
   job_id String @id @unique @db.NVarChar(255)
   job_name String @db.NVarChar(255)
-  owner_id String @unique @db.NVarChar(255)
-  owner User? @relation(fields: [owner_id], references: [user_id])
+  user_id String @db.NVarChar(255)
+  owner User? @relation(fields: [user_id], references: [user_id])
   positions String?
   images String?
   country String @db.NVarChar(255)
@@ -61,17 +63,17 @@ model Job {
   long_description String @db.NVarChar(255)
   start_date String
   duration String
-  job_positions Position? @relation(fields: [job_id], references: [job_id])
+  job_positions Position[]
   wishlist Wishlist[]
 }
 
 model Position {
   position_id String @id @unique @db.NVarChar(255)
-  job_id String @unique @db.NVarChar(255)
+  job_id String @db.NVarChar(255)
   frequency String
   per_frequency Int
   price Int
-  job Job?
+  job Job? @relation(fields: [job_id], references: [job_id])
 }
 
 model Messages {

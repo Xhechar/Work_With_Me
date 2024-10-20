@@ -51,7 +51,7 @@ export interface User { //TABLE
 }
 
 export interface TokenDetails extends User {
-
+  //SHA256:vBGnLvKl+5lEZBhltAo9AGP5KOiGV2lWBg+MERr4UNA your_email@example.com
 }
 
 export interface Recovery {
@@ -64,7 +64,7 @@ export interface Recovery {
  //add this on accessing profile page
 export interface IndividualDetails { //TABLE
   individual_id: string,
-  seeker_id: string,
+  user_id: string,
   service: string, //either expert or assistant
   certification_image: string,
   yoe: number, //as year of experience
@@ -74,16 +74,16 @@ export interface IndividualDetails { //TABLE
 export interface Job { //TABLE
   job_id: string,
   job_name: string,
-  owner_id: string,
+  user_id: string,
   owner?: User,
-  positions: string[],
-  images: string[],
+  positions: string,
+  images: string,
   country: string,
   county: string,
   ward: string,
   short_description: string,
   long_description: string,
-  start_date: string | Date,
+  start_date: string,
   duration: string,
   job_positions?: Position
 }

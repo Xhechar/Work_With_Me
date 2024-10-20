@@ -171,4 +171,15 @@ export class UserController {
       })
     }
   }
+
+  async changeUserRole(req: Request, res: Response) {
+    try {
+      return res.status(201).json((userService.changeUserRole(req.params.user_id)))
+      
+    } catch (error) {
+      return res.status(501).json({
+        error
+      })
+    }
+  }
 }
